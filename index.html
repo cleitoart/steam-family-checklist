@@ -1594,7 +1594,7 @@
 
     async function searchGames(query) {
       try {
-        const res  = await fetch(`/.netlify/functions/steam-search?q=${encodeURIComponent(query)}`);
+        const res  = await fetch(`/api/steam-search?q=${encodeURIComponent(query)}`);
         const data = await res.json();
         searchResults = data.items || [];
         showDropdown(searchResults);
@@ -1679,7 +1679,7 @@
 
       try {
         // Steam Store API (via Netlify Function para evitar CORS)
-        const res  = await fetch(`/.netlify/functions/steam?appId=${appId}`);
+        const res  = await fetch(`/api/steam?appId=${appId}`);
         const data = await res.json();
         const info = data[appId];
 
@@ -1791,7 +1791,7 @@
 
     async function refreshSinglePrice(game) {
       try {
-        const res  = await fetch(`/.netlify/functions/steam?appId=${game.appId}`);
+        const res  = await fetch(`/api/steam?appId=${game.appId}`);
         const data = await res.json();
         const info = data[game.appId];
         if (!info?.success) return;
