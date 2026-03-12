@@ -77,27 +77,40 @@
       --font-body: 'Noto Sans', sans-serif;
     }
 
-    html { scroll-behavior: smooth; }
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg); /* fallback enquanto canvas carrega */
+    }
 
     body {
-      background: var(--bg);
+      background: transparent;
       color: var(--text);
       font-family: var(--font-body);
       min-height: 100vh;
       overflow-x: hidden;
     }
 
-    /* ── Background grid ── */
+    /* ── Noise canvas ── */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      image-rendering: smooth;
+    }
+
+    /* ── Background grid (sobre o canvas) ── */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
       background-image:
-        linear-gradient(rgba(74,140,180,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(74,140,180,0.03) 1px, transparent 1px);
+        linear-gradient(rgba(74,140,180,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74,140,180,0.04) 1px, transparent 1px);
       background-size: 40px 40px;
       pointer-events: none;
-      z-index: 0;
+      z-index: 1;
     }
 
     /* ── Header ── */
@@ -266,10 +279,12 @@
     /* ── Main ── */
     main {
       position: relative;
-      z-index: 1;
+      z-index: 2;
       max-width: 780px;
       margin: 0 auto;
       padding: 32px 16px 64px;
+      background: rgba(5, 13, 20, 0.62);
+      min-height: calc(100vh - 64px);
     }
 
     /* ── Add section ── */
@@ -1057,6 +1072,8 @@
 </head>
 <body>
 
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+
   <header>
     <div class="header-logo">
       <div class="logo-icon"><span class="material-icon material-icon-filled">sports_esports</span></div>
@@ -1755,6 +1772,75 @@
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
     }
+  // ── Perlin Noise Background ────────────────────────────
+  (function initBgNoise() {
+    const cv = document.getElementById('bg-canvas');
+    const cx = cv.getContext('2d');
+    const W = 192, H = 108; // baixa resolução, zoom suave via CSS
+    cv.width = W;
+    cv.height = H;
+
+    // Tabela de permutação embaralhada
+    const base = Array.from({length: 256}, (_, i) => i);
+    for (let i = 255; i > 0; i--) {
+      const j = Math.random() * (i + 1) | 0;
+      [base[i], base[j]] = [base[j], base[i]];
+    }
+    const P = new Uint8Array(512);
+    for (let i = 0; i < 512; i++) P[i] = base[i & 255];
+
+    const fade = t => t * t * t * (t * (t * 6 - 15) + 10);
+    const lerp = (t, a, b) => a + t * (b - a);
+    const grad = (h, x, y) => {
+      switch (h & 3) {
+        case 0: return  x + y;
+        case 1: return -x + y;
+        case 2: return  x - y;
+        default: return -x - y;
+      }
+    };
+
+    function noise(x, y) {
+      const X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+      x -= Math.floor(x); y -= Math.floor(y);
+      const u = fade(x), v = fade(y);
+      const A = P[X] + Y, B = P[X + 1] + Y;
+      return lerp(v,
+        lerp(u, grad(P[A],     x,     y), grad(P[B],     x - 1,     y)),
+        lerp(u, grad(P[A + 1], x, y - 1), grad(P[B + 1], x - 1, y - 1))
+      );
+    }
+
+    const img = cx.createImageData(W, H);
+    const d = img.data;
+    let t = 0;
+
+    function draw() {
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          // Dois campos de ruído com escalas e velocidades diferentes
+          const n1 = (noise(x * 0.05 + t * 0.09, y * 0.05 + t * 0.06) + 1) * 0.5;
+          const n2 = (noise(x * 0.03 - t * 0.05, y * 0.03 + t * 0.07) + 1) * 0.5;
+          const n  = n1 * 0.65 + n2 * 0.35;
+
+          // Mapa de cores: #050d14 → #102038 com toque de azul nos picos
+          const hi = Math.max(0, n - 0.6) * 2.5;
+          const r = (5  + n * 12 + hi * 6)  | 0;
+          const g = (12 + n * 18 + hi * 10) | 0;
+          const b = (20 + n * 28 + hi * 22) | 0;
+
+          const i = (y * W + x) * 4;
+          d[i] = r; d[i + 1] = g; d[i + 2] = b; d[i + 3] = 255;
+        }
+      }
+      cx.putImageData(img, 0, 0);
+      t += 0.005;
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  })();
+
   </script>
 </body>
 </html>
