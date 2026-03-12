@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Família Steam — Lista de Jogos</title>
+  <title>Games Vault — Lista de Desejos da Família</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
@@ -553,7 +553,8 @@
       color: var(--text);
       font-family: var(--font-body);
       font-size: 13px;
-      padding: 6px 10px 6px 30px;
+      padding: 0 10px 0 30px;
+      height: 32px;
       outline: none;
       width: 170px;
       transition: border-color 0.2s, width 0.2s;
@@ -574,7 +575,7 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 0 4px 0 8px;
-      height: 30px;
+      height: 32px;
       color: var(--muted);
       transition: border-color 0.15s;
     }
@@ -653,10 +654,11 @@
       border-radius: 8px;
       padding: 3px;
       gap: 2px;
+      height: 32px;
     }
 
     .seg-btn {
-      padding: 5px 14px;
+      padding: 0 14px;
       border-radius: 5px;
       border: none;
       background: transparent;
@@ -978,18 +980,14 @@
       border-radius: 8px;
       color: var(--muted);
       cursor: pointer;
-      padding: 6px 12px;
+      width: 36px;
+      height: 36px;
+      padding: 0;
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-family: var(--font-head);
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      transition: all 0.15s;
-      white-space: nowrap;
+      justify-content: center;
       flex-shrink: 0;
+      transition: all 0.15s;
     }
     .lock-btn:hover { border-color: var(--accent); color: var(--accent); }
     .lock-btn.unlocked { border-color: rgba(93,186,74,0.35); color: var(--green); }
@@ -1063,8 +1061,8 @@
     <div class="header-logo">
       <div class="logo-icon"><span class="material-icon material-icon-filled">sports_esports</span></div>
       <div>
-        <div class="logo-text">Família Steam</div>
-        <div class="logo-sub">Lista de Jogos</div>
+        <div class="logo-text">Games Vault</div>
+        <div class="logo-sub">Lista de Desejos da Família</div>
       </div>
     </div>
     <div class="header-stats">
@@ -1087,9 +1085,8 @@
         </div>
       </div>
     </div>
-    <button class="lock-btn" id="lock-btn" onclick="toggleLock()">
+    <button class="lock-btn" id="lock-btn" onclick="toggleLock()" title="Bloqueado">
       <span id="lock-icon" class="material-icon">lock</span>
-      <span id="lock-label">Bloqueado</span>
     </button>
   </header>
 
@@ -1101,7 +1098,7 @@
 
       <div class="add-row">
         <div class="input-wrap" style="flex:1">
-          <span class="input-icon">🔗</span>
+          <span class="input-icon material-icon">link</span>
           <input type="text" id="input-url"
             placeholder="Link, ID ou nome do jogo na Steam"
             oninput="onUrlInput(this.value)"
@@ -1130,7 +1127,7 @@
       <!-- Suggested by + confirm -->
       <div class="suggest-row" id="suggest-row">
         <div class="input-wrap" style="flex:1">
-          <span class="input-icon">👤</span>
+          <span class="input-icon material-icon">person</span>
           <input type="text" id="input-who"
             placeholder="Quem sugeriu? (opcional)"
             style="padding-left:38px"
@@ -1203,7 +1200,7 @@
   <!-- Auth modal -->
   <div class="auth-overlay" id="auth-overlay">
     <div class="auth-box">
-      <div class="auth-title">🔑 Acesso de Edição</div>
+      <div class="auth-title"><span class="material-icon" style="font-size:22px;vertical-align:-4px">key</span> Acesso de Edição</div>
       <div class="auth-sub">Digite o PIN para desbloquear adição e edição de jogos</div>
       <input class="auth-input" id="auth-input" type="password"
         maxlength="12" placeholder="••••"
@@ -1230,18 +1227,17 @@
 
     function applyLockState() {
       const btn   = document.getElementById('lock-btn');
-      const icon  = document.getElementById('lock-icon');
-      const label = document.getElementById('lock-label');
+      const icon = document.getElementById('lock-icon');
       if (editUnlocked) {
         document.body.classList.remove('edit-locked');
         btn.classList.add('unlocked');
-        icon.textContent  = 'lock_open';
-        label.textContent = 'Desbloqueado';
+        btn.title        = 'Desbloqueado — clique para bloquear';
+        icon.textContent = 'lock_open';
       } else {
         document.body.classList.add('edit-locked');
         btn.classList.remove('unlocked');
-        icon.textContent  = 'lock';
-        label.textContent = 'Bloqueado';
+        btn.title        = 'Bloqueado — clique para editar';
+        icon.textContent = 'lock';
       }
     }
 
