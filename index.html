@@ -493,6 +493,21 @@
 
     .search-result-price { font-size: 12px; color: var(--green); margin-top: 2px; }
 
+    .search-result-item.already-added { opacity: 0.45; cursor: not-allowed; }
+
+    .already-badge {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(74,158,221,0.1);
+      border: 1px solid rgba(74,158,221,0.25);
+      border-radius: 4px;
+      padding: 1px 7px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      align-self: center;
+    }
+
     /* Buttons */
     .btn {
       display: inline-flex;
@@ -1526,6 +1541,13 @@
       document.getElementById('games-list-wrap').scrollTop = 0;
     }
 
+    // ── Duplicate detection ───────────────────────────────
+    function isGameAdded(appId) {
+      return Object.values(window.__games || {}).some(
+        g => String(g.appId) === String(appId)
+      );
+    }
+
     // ── Input validation + live search ───────────────────
     let searchDebounce;
     let searchResults = [];
@@ -1593,13 +1615,15 @@
       if (items.length === 0) { hideDropdown(); return; }
       dd.innerHTML = items.slice(0, 8).map((item, i) => {
         const { price } = parsePriceFromSearch(item);
-        const img = `https://cdn.akamai.steamstatic.com/steam/apps/${item.id}/header.jpg`;
-        return `<div class="search-result-item" onclick="selectResult(${i})">
+        const img    = `https://cdn.akamai.steamstatic.com/steam/apps/${item.id}/header.jpg`;
+        const added  = isGameAdded(item.id);
+        return `<div class="search-result-item${added ? ' already-added' : ''}" ${added ? '' : `onclick="selectResult(${i})"`}>
           <img class="search-result-img" src="${img}" alt="" loading="lazy">
           <div class="search-result-info">
             <div class="search-result-name">${item.name}</div>
             <div class="search-result-price">${price}</div>
           </div>
+          ${added ? '<span class="already-badge">Já na lista</span>' : ''}
         </div>`;
       }).join('');
       dd.classList.add('show');
@@ -1613,8 +1637,13 @@
     function selectResult(i) {
       const item = searchResults[i];
       if (!item) return;
-      hideDropdown();
       const appId = String(item.id);
+      if (isGameAdded(appId)) {
+        showToast(`"${item.name}" já está na lista!`, 'error');
+        hideDropdown();
+        return;
+      }
+      hideDropdown();
       const { price, priceOrig, discount } = parsePriceFromSearch(item);
       pendingGame = {
         appId,
@@ -1657,6 +1686,11 @@
         if (!info.success) throw new Error("Jogo não encontrado");
 
         const g = info.data;
+
+        if (isGameAdded(appId)) {
+          showToast(`"${g.name}" já está na lista!`, 'error');
+          return;
+        }
 
         pendingGame = {
           appId,
@@ -1716,6 +1750,11 @@
 
     async function confirmAdd() {
       if (!pendingGame) return;
+      if (isGameAdded(pendingGame.appId)) {
+        showToast(`"${pendingGame.name}" já está na lista!`, 'error');
+        cancelAdd();
+        return;
+      }
       setLoading('add', true);
       pendingGame.suggestedBy = document.getElementById('input-who').value.trim() || null;
       try {
