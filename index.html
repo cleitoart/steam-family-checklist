@@ -158,16 +158,85 @@
       gap: 24px;
     }
 
-    .stat {
-      text-align: center;
+    /* ── Price tag ── */
+    .price-tag {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(232,184,75,0.08);
+      border: 1px solid rgba(232,184,75,0.25);
+      border-radius: 20px;
+      padding: 5px 14px;
+      color: #e8b84b;
+      font-family: var(--font-head);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: default;
+      transition: border-color 0.2s, background 0.2s;
+      user-select: none;
     }
 
-    .stat-num {
-      font-family: var(--font-head);
-      font-size: 20px;
-      font-weight: 700;
-      line-height: 1;
+    .price-tag:hover {
+      background: rgba(232,184,75,0.14);
+      border-color: rgba(232,184,75,0.5);
     }
+
+    .price-tooltip {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      min-width: 220px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-4px);
+      transition: opacity 0.15s, transform 0.15s;
+      z-index: 50;
+    }
+
+    .price-tag:hover .price-tooltip {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .price-tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      font-size: 12px;
+      font-family: var(--font-body);
+      color: var(--text);
+      padding: 3px 0;
+    }
+
+    .price-tooltip-row.orig {
+      color: var(--muted);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 4px;
+    }
+
+    .price-tooltip-label { color: var(--muted); font-size: 11px; }
+
+    /* ── Progress counts ── */
+    .progress-counts {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .count-sep { opacity: 0.3; }
 
     /* Material Symbols */
     .material-icon {
@@ -576,26 +645,36 @@
     .detail-who-input::placeholder { color: var(--muted); font-style: italic; }
     body.edit-locked .detail-who-row { display: none; }
 
-    .filter-btn {
-      padding: 6px 14px;
-      border-radius: 6px;
+    /* ── Segmented filter ── */
+    .seg-control {
+      display: inline-flex;
+      background: var(--card);
       border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .seg-btn {
+      padding: 5px 14px;
+      border-radius: 5px;
+      border: none;
       background: transparent;
       color: var(--muted);
-      font-family: var(--font-head);
+      font-family: var(--font-body);
       font-size: 12px;
       font-weight: 600;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       cursor: pointer;
       transition: all 0.15s;
+      white-space: nowrap;
     }
 
-    .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .seg-btn:hover { color: var(--text); }
 
-    .filter-btn.active {
+    .seg-btn.active {
       background: rgba(74,158,221,0.15);
-      border-color: rgba(74,158,221,0.5);
       color: var(--accent);
     }
 
@@ -989,25 +1068,23 @@
       </div>
     </div>
     <div class="header-stats">
-      <div class="stat">
-        <div class="stat-num" id="stat-total" style="color:var(--accent)">0</div>
-        <div class="stat-label">Total</div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" id="stat-bought" style="color:var(--green)">0</div>
-        <div class="stat-label">Comprados</div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" id="stat-pending" style="color:var(--text)">0</div>
-        <div class="stat-label">Faltam</div>
-      </div>
-      <div class="stat stat-price-wrap">
-        <div class="stat-num stat-num-price" id="stat-price-orig" style="color:var(--muted);text-decoration:line-through">R$ 0,00</div>
-        <div class="stat-label">Sem desc.</div>
-      </div>
-      <div class="stat stat-price-wrap">
-        <div class="stat-num stat-num-price" id="stat-price" style="color:#e8b84b">R$ 0,00</div>
-        <div class="stat-label">A Gastar <span id="stat-savings" style="color:var(--green);font-style:normal"></span></div>
+      <div class="price-tag">
+        <span class="material-icon" style="font-size:16px">payments</span>
+        <span id="stat-price">R$ 0,00</span>
+        <div class="price-tooltip">
+          <div class="price-tooltip-row orig">
+            <span class="price-tooltip-label">Preço cheio</span>
+            <span id="stat-price-orig">R$ 0,00</span>
+          </div>
+          <div class="price-tooltip-row">
+            <span class="price-tooltip-label">Com descontos</span>
+            <span id="stat-price-disc">R$ 0,00</span>
+          </div>
+          <div class="price-tooltip-row" id="tooltip-savings-row" style="display:none">
+            <span class="price-tooltip-label">Economizando</span>
+            <span id="stat-savings" style="color:var(--green);font-weight:700"></span>
+          </div>
+        </div>
       </div>
     </div>
     <button class="lock-btn" id="lock-btn" onclick="toggleLock()">
@@ -1069,9 +1146,11 @@
 
     <!-- Filters + Search -->
     <div class="list-controls">
-      <button class="filter-btn active" onclick="setFilter('all', this)">Todos</button>
-      <button class="filter-btn" onclick="setFilter('pending', this)">Faltam</button>
-      <button class="filter-btn" onclick="setFilter('bought', this)">Comprados</button>
+      <div class="seg-control">
+        <button class="seg-btn active" onclick="setFilter('all', this)">Todos</button>
+        <button class="seg-btn" onclick="setFilter('pending', this)">Faltam</button>
+        <button class="seg-btn" onclick="setFilter('bought', this)">Comprados</button>
+      </div>
       <div class="sort-control">
         <span class="material-icon" style="font-size:16px">sort</span>
         <select class="sort-select" id="sort-select" onchange="setSort(this.value)">
@@ -1100,6 +1179,16 @@
       </div>
       <div class="progress-bar">
         <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="progress-counts">
+        <span id="stat-total" style="color:var(--accent);font-weight:700">0</span>
+        <span> jogos</span>
+        <span class="count-sep">·</span>
+        <span id="stat-bought" style="color:var(--green);font-weight:700">0</span>
+        <span> comprados</span>
+        <span class="count-sep">·</span>
+        <span id="stat-pending" style="font-weight:700">0</span>
+        <span> faltam</span>
       </div>
     </div>
 
@@ -1479,11 +1568,20 @@
       const totalWithoutDiscount = pending.reduce((sum, g) => sum + parsePriceValue(g.priceOrig || g.price), 0);
       const savings = totalWithoutDiscount - totalWithDiscount;
 
-      document.getElementById('stat-price-orig').textContent = fmt(totalWithoutDiscount);
+      // Preço na tag do header (com desconto)
       document.getElementById('stat-price').textContent      = fmt(totalWithDiscount);
-      // Mostra economia apenas se houver desconto real
-      const savingsEl = document.getElementById('stat-savings');
-      savingsEl.textContent = savings > 0 ? `−${fmt(savings)}` : '';
+      // Tooltip: preço cheio e com desconto
+      document.getElementById('stat-price-orig').textContent = fmt(totalWithoutDiscount);
+      document.getElementById('stat-price-disc').textContent = fmt(totalWithDiscount);
+      // Linha de economia (só aparece se houver algum desconto real)
+      const savingsRow = document.getElementById('tooltip-savings-row');
+      const savingsEl  = document.getElementById('stat-savings');
+      if (savings > 0) {
+        savingsEl.textContent    = `−${fmt(savings)}`;
+        savingsRow.style.display = '';
+      } else {
+        savingsRow.style.display = 'none';
+      }
 
       // Stats
       document.getElementById('stat-total').textContent   = total;
@@ -1617,7 +1715,7 @@
     // ── Filters + Search ─────────────────────────────────
     function setFilter(f, btn) {
       currentFilter = f;
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       renderGames(window.__games || {});
     }
