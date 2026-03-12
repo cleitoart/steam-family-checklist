@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Família Steam — Lista de Jogos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 
   <!-- Firebase SDK -->
   <script type="module">
@@ -68,8 +69,8 @@
       --text:      #c8d8e4;
       --muted:     #5a7a8a;
       --bought-bg: #0d2010;
-      --font-head: 'Barlow Condensed', sans-serif;
-      --font-body: 'Barlow', sans-serif;
+      --font-head: 'Noto Sans', sans-serif;
+      --font-body: 'Noto Sans', sans-serif;
     }
 
     html { scroll-behavior: smooth; }
@@ -124,7 +125,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
+      font-size: 20px;
+      color: #fff;
       flex-shrink: 0;
     }
 
@@ -163,8 +165,22 @@
       line-height: 1;
     }
 
-    .stat-num-price {
-      font-size: 13px;
+    /* Material Symbols */
+    .material-icon {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      -webkit-font-smoothing: antialiased;
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    }
+    .material-icon-filled {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
 
     .stat-label {
@@ -712,7 +728,7 @@
       color: var(--muted);
     }
 
-    .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+    .empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.4; }
     .empty-title { font-family: var(--font-head); font-size: 20px; font-weight: 700; margin-bottom: 6px; }
     .empty-sub { font-size: 14px; opacity: 0.7; }
 
@@ -847,7 +863,7 @@
 
   <header>
     <div class="header-logo">
-      <div class="logo-icon">🎮</div>
+      <div class="logo-icon"><span class="material-icon material-icon-filled">sports_esports</span></div>
       <div>
         <div class="logo-text">Família Steam</div>
         <div class="logo-sub">Lista de Jogos</div>
@@ -872,7 +888,7 @@
       </div>
     </div>
     <button class="lock-btn" id="lock-btn" onclick="toggleLock()">
-      <span id="lock-icon">🔒</span>
+      <span id="lock-icon" class="material-icon">lock</span>
       <span id="lock-label">Bloqueado</span>
     </button>
   </header>
@@ -881,7 +897,7 @@
 
     <!-- Add game section -->
     <div class="add-section">
-      <div class="add-title">➕ Adicionar Jogo</div>
+      <div class="add-title"><span class="material-icon" style="font-size:14px;vertical-align:-2px">add_circle</span> Adicionar Jogo</div>
 
       <div class="add-row">
         <div class="input-wrap" style="flex:1">
@@ -989,12 +1005,12 @@
       if (editUnlocked) {
         document.body.classList.remove('edit-locked');
         btn.classList.add('unlocked');
-        icon.textContent  = '🔓';
+        icon.textContent  = 'lock_open';
         label.textContent = 'Desbloqueado';
       } else {
         document.body.classList.add('edit-locked');
         btn.classList.remove('unlocked');
-        icon.textContent  = '🔒';
+        icon.textContent  = 'lock';
         label.textContent = 'Bloqueado';
       }
     }
@@ -1003,7 +1019,7 @@
       if (editUnlocked) {
         editUnlocked = false;
         applyLockState();
-        showToast('🔒 Edição bloqueada.', '');
+        showToast('Edição bloqueada.', '');
       } else {
         showAuthModal();
       }
@@ -1027,7 +1043,7 @@
         editUnlocked = true;
         closeAuthModal();
         applyLockState();
-        showToast('🔓 Edição desbloqueada!', 'success');
+        showToast('Edição desbloqueada!', 'success');
       } else {
         input.classList.remove('shake');
         void input.offsetWidth; // reinicia animação
@@ -1201,7 +1217,7 @@
         showPreview(pendingGame);
 
       } catch (e) {
-        showToast("❌ Não foi possível buscar o jogo. Verifique o link.", "error");
+        showToast("Não foi possível buscar o jogo. Verifique o link.", "error");
       } finally {
         setLoading('search', false);
       }
@@ -1235,10 +1251,10 @@
       pendingGame.suggestedBy = document.getElementById('input-who').value.trim() || null;
       try {
         await window.addGame(pendingGame);
-        showToast(`✅ "${pendingGame.name}" adicionado!`, 'success');
+        showToast(`"${pendingGame.name}" adicionado!`, 'success');
         cancelAdd();
       } catch (e) {
-        showToast("❌ Erro ao salvar. Verifique a configuração do Firebase.", "error");
+        showToast("Erro ao salvar. Verifique a configuração do Firebase.", "error");
       } finally {
         setLoading('add', false);
       }
@@ -1344,7 +1360,7 @@
       if (filtered.length === 0) {
         list.innerHTML = `
           <div class="empty">
-            <div class="empty-icon">🎮</div>
+            <div class="empty-icon"><span class="material-icon material-icon-filled">sports_esports</span></div>
             <div class="empty-title">${total === 0 ? 'Lista vazia' : 'Nenhum jogo aqui'}</div>
             <div class="empty-sub">${total === 0
               ? 'Cole um link da Steam acima para começar!'
@@ -1358,7 +1374,7 @@
           <div class="game-card-main" onclick="toggleExpand('${g.id}')">
             ${g.image
               ? `<img class="game-thumb" src="${g.image}" alt="${g.name}" loading="lazy">`
-              : `<div class="game-thumb-placeholder">🎮</div>`}
+              : `<div class="game-thumb-placeholder"><span class="material-icon material-icon-filled" style="font-size:28px">sports_esports</span></div>`}
             <div class="game-info">
               <div class="game-name">${g.name || 'Jogo sem nome'}</div>
               <div class="game-meta">
