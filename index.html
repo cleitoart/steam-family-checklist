@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Família Steam — Lista de Jogos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    // ─────────────────────────────────────────────────────────
+    // 🔧 CONFIGURAÇÃO DO FIREBASE
+    // Substitua os valores abaixo pelos da sua conta Firebase
+    // (Veja o arquivo CONFIGURACAO.md para instruções)
+    // ─────────────────────────────────────────────────────────
+    const firebaseConfig = {
+      apiKey: "AIzaSyCMOVSidkdu-Kl0kzMRp8xxtvBdbfKBfWY",
+      authDomain: "familia-steam.firebaseapp.com",
+      databaseURL: "https://familia-steam-default-rtdb.firebaseio.com",
+      projectId: "familia-steam",
+      storageBucket: "familia-steam.firebasestorage.app",
+      messagingSenderId: "211145034459",
+      appId: "1:211145034459:web:f7c9273664717d41fddafe"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
+    const gamesRef = ref(db, "games");
+
+    // ── Realtime listener ──────────────────────────────────
+    onValue(gamesRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      window.__games = data;
+      renderGames(data);
+    });
+
+    // ── Add game ───────────────────────────────────────────
+    window.addGame = (game) => push(gamesRef, game);
+
+    // ── Toggle purchased ──────────────────────────────────
+    window.toggleGame = (id, current) =>
+      update(ref(db, `games/${id}`), { purchased: !current });
+
+    // ── Delete game ───────────────────────────────────────
+    window.deleteGame = (id) => remove(ref(db, `games/${id}`));
+
+    // ── Update price ──────────────────────────────────────
+    window.updateGamePrice = (id, priceData) =>
+      update(ref(db, `games/${id}`), priceData);
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a1520;
+      --surface:   #0f1e2e;
+      --card:      #132032;
+      --card-alt:  #0e1a28;
+      --border:    rgba(74, 140, 180, 0.18);
+      --accent:    #4a9edd;
+      --green:     #5dba4a;
+      --red:       #dd5555;
+      --text:      #c8d8e4;
+      --muted:     #5a7a8a;
+      --bought-bg: #0d2010;
+      --font-head: 'Barlow Condensed', sans-serif;
+      --font-body: 'Barlow', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background grid ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(74,140,180,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74,140,180,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 21, 32, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 64px;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), #2a6a9e);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-family: var(--font-head);
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .logo-sub {
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .header-stats {
+      margin-left: auto;
+      display: flex;
+      gap: 24px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: var(--font-head);
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Main ── */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 32px 16px 64px;
+    }
+
+    /* ── Add section ── */
+    .add-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 28px;
+      transition: border-color 0.2s;
+    }
+
+    .add-section:focus-within {
+      border-color: rgba(74, 140, 180, 0.45);
+    }
+
+    .add-title {
+      font-family: var(--font-head);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .add-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .input-wrap {
+      flex: 1;
+      position: relative;
+    }
+
+    input[type="url"], input[type="text"] {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      padding: 11px 14px 11px 40px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="url"]:focus, input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(74,158,221,0.12);
+    }
+
+    input::placeholder { color: var(--muted); }
+
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 16px;
+      pointer-events: none;
+    }
+
+    /* Preview after fetch */
+    .preview-box {
+      display: none;
+      margin-top: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      gap: 12px;
+      align-items: center;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .preview-box.show { display: flex; }
+
+    .preview-img {
+      width: 80px;
+      height: 45px;
+      object-fit: cover;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .preview-info { flex: 1; min-width: 0; }
+
+    .preview-name {
+      font-family: var(--font-head);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .preview-price-wrap { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+
+    .preview-price {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--green);
+    }
+
+    .preview-original {
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+
+    .preview-discount {
+      background: rgba(93,186,74,0.15);
+      border: 1px solid rgba(93,186,74,0.3);
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .preview-free {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--green);
+    }
+
+    /* Suggested by input */
+    .suggest-row {
+      display: none;
+      margin-top: 10px;
+      gap: 10px;
+    }
+
+    .suggest-row.show { display: flex; }
+
+    /* ── Search dropdown ── */
+    .search-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      z-index: 50;
+      max-height: 280px;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      display: none;
+    }
+
+    .search-dropdown.show { display: block; }
+
+    .search-result-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover { background: rgba(74,140,180,0.08); }
+
+    .search-result-img {
+      width: 64px;
+      height: 36px;
+      object-fit: cover;
+      border-radius: 3px;
+      flex-shrink: 0;
+      background: var(--card-alt);
+    }
+
+    .search-result-info { flex: 1; min-width: 0; }
+
+    .search-result-name {
+      font-family: var(--font-head);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .search-result-price { font-size: 12px; color: var(--green); margin-top: 2px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 11px 18px;
+      border-radius: 8px;
+      font-family: var(--font-head);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: none;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #2a6aaa);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(74,158,221,0.25);
+    }
+
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(74,158,221,0.35); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-green {
+      background: linear-gradient(135deg, var(--green), #3a8a2a);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(93,186,74,0.2);
+    }
+
+    .btn-green:hover { transform: translateY(-1px); }
+    .btn-green:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Loader */
+    .loader {
+      display: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    /* ── Filters ── */
+    .filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font-head);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .filter-btn.active {
+      background: rgba(74,158,221,0.15);
+      border-color: rgba(74,158,221,0.5);
+      color: var(--accent);
+    }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      margin-bottom: 20px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: var(--card);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    /* ── Game cards ── */
+    .games-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .game-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.15s;
+      animation: slideIn 0.25s ease;
+    }
+
+    .game-card:hover { border-color: rgba(74,140,180,0.35); transform: translateX(2px); }
+
+    .game-card.bought {
+      background: var(--bought-bg);
+      border-color: rgba(93,186,74,0.2);
+    }
+
+    .game-card-main {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      cursor: pointer;
+    }
+
+    .game-thumb {
+      width: 100px;
+      height: 56px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .game-thumb-placeholder {
+      width: 100px;
+      height: 56px;
+      background: var(--card-alt);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: var(--muted);
+    }
+
+    .game-info {
+      flex: 1;
+      padding: 10px 14px;
+      min-width: 0;
+    }
+
+    .game-name {
+      font-family: var(--font-head);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: 0.02em;
+    }
+
+    .game-card.bought .game-name {
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+
+    .game-meta {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 3px;
+      flex-wrap: wrap;
+    }
+
+    .game-price {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+    }
+
+    .game-price-original {
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+
+    .game-discount {
+      background: rgba(93,186,74,0.15);
+      border: 1px solid rgba(93,186,74,0.25);
+      color: var(--green);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .game-who {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .game-who span {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .game-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      flex-shrink: 0;
+    }
+
+    /* Checkbox */
+    .checkbox {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      border: 2px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .checkbox:hover { border-color: var(--green); }
+
+    .checkbox.checked {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .checkbox.checked::after {
+      content: '';
+      width: 12px;
+      height: 8px;
+      border-left: 2px solid white;
+      border-bottom: 2px solid white;
+      transform: rotate(-45deg) translateY(-2px);
+      display: block;
+    }
+
+    /* Expand toggle */
+    .expand-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s, transform 0.2s;
+    }
+
+    .expand-btn:hover { color: var(--accent); }
+    .expand-btn.open { transform: rotate(180deg); }
+
+    /* Expanded detail */
+    .game-detail {
+      display: none;
+      padding: 12px 14px 14px 114px;
+      border-top: 1px solid var(--border);
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      animation: fadeIn 0.15s ease;
+    }
+
+    .game-detail.open { display: flex; }
+
+    .detail-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--accent);
+      font-size: 13px;
+      text-decoration: none;
+      padding: 5px 10px;
+      border: 1px solid rgba(74,158,221,0.3);
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+
+    .detail-link:hover {
+      background: rgba(74,158,221,0.1);
+      border-color: rgba(74,158,221,0.6);
+    }
+
+    .detail-delete {
+      margin-left: auto;
+      background: none;
+      border: 1px solid rgba(221,85,85,0.25);
+      color: rgba(221,85,85,0.6);
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: var(--font-body);
+      transition: all 0.15s;
+    }
+
+    .detail-delete:hover {
+      background: rgba(221,85,85,0.1);
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center;
+      padding: 64px 20px;
+      color: var(--muted);
+    }
+
+    .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+    .empty-title { font-family: var(--font-head); font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .empty-sub { font-size: 14px; opacity: 0.7; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 13px;
+      color: var(--text);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 999;
+      max-width: 300px;
+    }
+
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { border-color: rgba(221,85,85,0.4); }
+    .toast.success { border-color: rgba(93,186,74,0.4); }
+
+    /* ── Animations ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 540px) {
+      .header-stats { display: none; }
+      .game-thumb, .game-thumb-placeholder { width: 70px; height: 42px; }
+      .game-detail { padding-left: 80px; }
+      .add-row { flex-direction: column; }
+      .btn { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-logo">
+      <div class="logo-icon">🎮</div>
+      <div>
+        <div class="logo-text">Família Steam</div>
+        <div class="logo-sub">Lista de Jogos</div>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat">
+        <div class="stat-num" id="stat-total" style="color:var(--accent)">0</div>
+        <div class="stat-label">Total</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-bought" style="color:var(--green)">0</div>
+        <div class="stat-label">Comprados</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-pending" style="color:var(--text)">0</div>
+        <div class="stat-label">Faltam</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Add game section -->
+    <div class="add-section">
+      <div class="add-title">➕ Adicionar Jogo</div>
+
+      <div class="add-row">
+        <div class="input-wrap" style="flex:1">
+          <span class="input-icon">🔗</span>
+          <input type="text" id="input-url"
+            placeholder="Link, ID ou nome do jogo na Steam"
+            oninput="onUrlInput(this.value)"
+            autocomplete="off"
+          />
+        </div>
+        <button class="btn btn-primary" id="btn-search" onclick="fetchGame()" disabled>
+          <span class="loader" id="loader-search"></span>
+          <span id="btn-search-label">Buscar</span>
+        </button>
+      </div>
+
+      <!-- Preview -->
+      <div class="preview-box" id="preview-box">
+        <img class="preview-img" id="preview-img" src="" alt="">
+        <div class="preview-info">
+          <div class="preview-name" id="preview-name"></div>
+          <div class="preview-price-wrap">
+            <span class="preview-price" id="preview-price"></span>
+            <span class="preview-original" id="preview-original"></span>
+            <span class="preview-discount" id="preview-discount"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggested by + confirm -->
+      <div class="suggest-row" id="suggest-row">
+        <div class="input-wrap" style="flex:1">
+          <span class="input-icon">👤</span>
+          <input type="text" id="input-who"
+            placeholder="Quem sugeriu? (opcional)"
+            style="padding-left:38px"
+          />
+        </div>
+        <button class="btn btn-green" id="btn-add" onclick="confirmAdd()">
+          <span class="loader" id="loader-add"></span>
+          <span>Adicionar</span>
+        </button>
+        <button class="btn btn-ghost" onclick="cancelAdd()">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <button class="filter-btn active" onclick="setFilter('all', this)">Todos</button>
+      <button class="filter-btn" onclick="setFilter('pending', this)">Faltam</button>
+      <button class="filter-btn" onclick="setFilter('bought', this)">Comprados</button>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap" id="progress-wrap" style="display:none">
+      <div class="progress-label">
+        <span>Progresso da coleção</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Games list -->
+    <div class="games-list" id="games-list"></div>
+
+  </main>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let currentFilter = 'all';
+    let pendingGame   = null;
+
+    // ── Input validation + live search ───────────────────
+    let searchDebounce;
+    let searchResults = [];
+
+    function onUrlInput(val) {
+      const btn = document.getElementById('btn-search');
+      const appId = extractAppId(val);
+      if (appId) {
+        btn.disabled = false;
+        clearTimeout(searchDebounce);
+        hideDropdown();
+      } else if (val.trim().length >= 2) {
+        btn.disabled = true;
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => searchGames(val.trim()), 400);
+      } else {
+        btn.disabled = true;
+        clearTimeout(searchDebounce);
+        hideDropdown();
+      }
+    }
+
+    function extractAppId(val) {
+      const urlM = val.match(/store\.steampowered\.com\/app\/(\d+)/);
+      if (urlM) return urlM[1];
+      if (/^\d+$/.test(val.trim())) return val.trim();
+      return null;
+    }
+
+    function parsePriceFromSearch(item) {
+      if (item.is_free) return { price: 'Gratuito', priceOrig: null, discount: null };
+      if (!item.price)  return { price: 'Indisponível', priceOrig: null, discount: null };
+      const p = item.price;
+      const fmt = (cents) => 'R$ ' + (cents / 100).toFixed(2).replace('.', ',');
+      const final = p.final_formatted || fmt(p.final);
+      const hasDiscount = p.discount_percent > 0;
+      const orig = hasDiscount ? (p.initial_formatted || fmt(p.initial)) : null;
+      return {
+        price:     final,
+        priceOrig: orig,
+        discount:  hasDiscount ? `-${p.discount_percent}%` : null,
+      };
+    }
+
+    async function searchGames(query) {
+      try {
+        const res  = await fetch(`/.netlify/functions/steam-search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        searchResults = data.items || [];
+        showDropdown(searchResults);
+      } catch (e) {
+        hideDropdown();
+      }
+    }
+
+    function showDropdown(items) {
+      const wrap = document.getElementById('input-url').parentElement;
+      let dd = document.getElementById('search-dropdown');
+      if (!dd) {
+        dd = document.createElement('div');
+        dd.id = 'search-dropdown';
+        dd.className = 'search-dropdown';
+        wrap.appendChild(dd);
+      }
+      if (items.length === 0) { hideDropdown(); return; }
+      dd.innerHTML = items.slice(0, 8).map((item, i) => {
+        const { price } = parsePriceFromSearch(item);
+        const img = `https://cdn.akamai.steamstatic.com/steam/apps/${item.id}/header.jpg`;
+        return `<div class="search-result-item" onclick="selectResult(${i})">
+          <img class="search-result-img" src="${img}" alt="" loading="lazy">
+          <div class="search-result-info">
+            <div class="search-result-name">${item.name}</div>
+            <div class="search-result-price">${price}</div>
+          </div>
+        </div>`;
+      }).join('');
+      dd.classList.add('show');
+    }
+
+    function hideDropdown() {
+      const dd = document.getElementById('search-dropdown');
+      if (dd) dd.classList.remove('show');
+    }
+
+    function selectResult(i) {
+      const item = searchResults[i];
+      if (!item) return;
+      hideDropdown();
+      const appId = String(item.id);
+      const { price, priceOrig, discount } = parsePriceFromSearch(item);
+      pendingGame = {
+        appId,
+        name:      item.name,
+        image:     `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/header.jpg`,
+        url:       `https://store.steampowered.com/app/${appId}`,
+        purchased: false,
+        addedAt:   new Date().toISOString(),
+        price,
+        priceOrig: priceOrig || null,
+        discount:  discount  || null,
+        isFree:    item.is_free || false,
+      };
+      document.getElementById('input-url').value = item.name;
+      showPreview(pendingGame);
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.input-wrap')) hideDropdown();
+    });
+
+    // ── Fetch game info from Steam API ───────────────────
+    async function fetchGame() {
+      const url   = document.getElementById('input-url').value.trim();
+      const appId = extractAppId(url);
+      if (!appId) return;
+
+      setLoading('search', true);
+
+      try {
+        // Steam Store API (via Netlify Function para evitar CORS)
+        const res  = await fetch(`/.netlify/functions/steam?appId=${appId}`);
+        const data = await res.json();
+        const info = data[appId];
+
+        if (!info.success) throw new Error("Jogo não encontrado");
+
+        const g = info.data;
+
+        pendingGame = {
+          appId,
+          name:      g.name,
+          image:     g.header_image,
+          url:       `https://store.steampowered.com/app/${appId}`,
+          purchased: false,
+          addedAt:   new Date().toISOString(),
+          price:       null,
+          priceOrig:   null,
+          discount:    null,
+          isFree:      g.is_free || false,
+        };
+
+        if (g.is_free) {
+          pendingGame.price = "Gratuito";
+        } else if (g.price_overview) {
+          const p = g.price_overview;
+          pendingGame.price     = p.final_formatted;
+          pendingGame.priceOrig = p.initial_formatted;
+          pendingGame.discount  = p.discount_percent > 0 ? `-${p.discount_percent}%` : null;
+          if (p.discount_percent === 0) pendingGame.priceOrig = null;
+        } else {
+          pendingGame.price = "Indisponível";
+        }
+
+        showPreview(pendingGame);
+
+      } catch (e) {
+        showToast("❌ Não foi possível buscar o jogo. Verifique o link.", "error");
+      } finally {
+        setLoading('search', false);
+      }
+    }
+
+    function showPreview(g) {
+      document.getElementById('preview-img').src       = g.image || '';
+      document.getElementById('preview-name').textContent = g.name;
+      document.getElementById('preview-price').textContent = g.price || '';
+      document.getElementById('preview-original').textContent = g.priceOrig || '';
+      document.getElementById('preview-discount').textContent = g.discount || '';
+      document.getElementById('preview-discount').style.display = g.discount ? 'inline' : 'none';
+
+      document.getElementById('preview-box').classList.add('show');
+      document.getElementById('suggest-row').classList.add('show');
+    }
+
+    function cancelAdd() {
+      pendingGame = null;
+      document.getElementById('input-url').value  = '';
+      document.getElementById('input-who').value  = '';
+      document.getElementById('preview-box').classList.remove('show');
+      document.getElementById('suggest-row').classList.remove('show');
+      document.getElementById('btn-search').disabled = true;
+      hideDropdown();
+    }
+
+    async function confirmAdd() {
+      if (!pendingGame) return;
+      setLoading('add', true);
+      pendingGame.suggestedBy = document.getElementById('input-who').value.trim() || null;
+      try {
+        await window.addGame(pendingGame);
+        showToast(`✅ "${pendingGame.name}" adicionado!`, 'success');
+        cancelAdd();
+      } catch (e) {
+        showToast("❌ Erro ao salvar. Verifique a configuração do Firebase.", "error");
+      } finally {
+        setLoading('add', false);
+      }
+    }
+
+    // ── Background price refresh ──────────────────────────
+    let refreshStarted = false;
+
+    async function refreshPrices(games) {
+      if (refreshStarted) return;
+      refreshStarted = true;
+
+      const stale = 6 * 60 * 60 * 1000; // 6 horas
+      const now   = Date.now();
+      const toRefresh = games.filter(g =>
+        !g.purchased && g.appId &&
+        (!g.priceUpdatedAt || now - new Date(g.priceUpdatedAt).getTime() > stale)
+      );
+
+      for (let i = 0; i < toRefresh.length; i += 3) {
+        const batch = toRefresh.slice(i, i + 3);
+        await Promise.all(batch.map(refreshSinglePrice));
+        if (i + 3 < toRefresh.length) await new Promise(r => setTimeout(r, 1200));
+      }
+    }
+
+    async function refreshSinglePrice(game) {
+      try {
+        const res  = await fetch(`/.netlify/functions/steam?appId=${game.appId}`);
+        const data = await res.json();
+        const info = data[game.appId];
+        if (!info?.success) return;
+
+        const g      = info.data;
+        const update = { priceUpdatedAt: new Date().toISOString(), priceOrig: null, discount: null };
+
+        if (g.is_free) {
+          update.price  = 'Gratuito';
+          update.isFree = true;
+        } else if (g.price_overview) {
+          const p      = g.price_overview;
+          update.price     = p.final_formatted;
+          update.priceOrig = p.discount_percent > 0 ? p.initial_formatted : null;
+          update.discount  = p.discount_percent > 0 ? `-${p.discount_percent}%` : null;
+        } else {
+          update.price = 'Indisponível';
+        }
+
+        await window.updateGamePrice(game.id, update);
+      } catch (_) { /* falha silenciosa por jogo */ }
+    }
+
+    // ── Render ────────────────────────────────────────────
+    function renderGames(data) {
+      const games  = Object.entries(data).map(([id, g]) => ({ id, ...g }));
+      refreshPrices(games);
+      const total  = games.length;
+      const bought = games.filter(g => g.purchased).length;
+
+      // Stats
+      document.getElementById('stat-total').textContent   = total;
+      document.getElementById('stat-bought').textContent  = bought;
+      document.getElementById('stat-pending').textContent = total - bought;
+
+      // Progress
+      const pw = document.getElementById('progress-wrap');
+      if (total > 0) {
+        pw.style.display = 'block';
+        const pct = Math.round((bought / total) * 100);
+        document.getElementById('progress-pct').textContent  = pct + '%';
+        document.getElementById('progress-fill').style.width = pct + '%';
+      } else {
+        pw.style.display = 'none';
+      }
+
+      // Filter
+      const filtered = games.filter(g => {
+        if (currentFilter === 'pending') return !g.purchased;
+        if (currentFilter === 'bought')  return g.purchased;
+        return true;
+      });
+
+      // Sort: not bought first, then by name
+      filtered.sort((a, b) => {
+        if (a.purchased !== b.purchased) return a.purchased ? 1 : -1;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+
+      const list = document.getElementById('games-list');
+
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div class="empty">
+            <div class="empty-icon">🎮</div>
+            <div class="empty-title">${total === 0 ? 'Lista vazia' : 'Nenhum jogo aqui'}</div>
+            <div class="empty-sub">${total === 0
+              ? 'Cole um link da Steam acima para começar!'
+              : 'Tente outro filtro.'}</div>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(g => `
+        <div class="game-card ${g.purchased ? 'bought' : ''}" id="card-${g.id}">
+          <div class="game-card-main" onclick="toggleExpand('${g.id}')">
+            ${g.image
+              ? `<img class="game-thumb" src="${g.image}" alt="${g.name}" loading="lazy">`
+              : `<div class="game-thumb-placeholder">🎮</div>`}
+            <div class="game-info">
+              <div class="game-name">${g.name || 'Jogo sem nome'}</div>
+              <div class="game-meta">
+                ${g.price ? `<span class="game-price">${g.price}</span>` : ''}
+                ${g.priceOrig ? `<span class="game-price-original">${g.priceOrig}</span>` : ''}
+                ${g.discount ? `<span class="game-discount">${g.discount}</span>` : ''}
+                ${g.suggestedBy ? `<span class="game-who">por <span>${g.suggestedBy}</span></span>` : ''}
+              </div>
+            </div>
+            <div class="game-actions">
+              <div class="checkbox ${g.purchased ? 'checked' : ''}"
+                onclick="event.stopPropagation(); window.toggleGame('${g.id}', ${g.purchased})">
+              </div>
+              <button class="expand-btn" id="expand-${g.id}">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="game-detail" id="detail-${g.id}">
+            ${g.url ? `<a class="detail-link" href="${g.url}" target="_blank" rel="noopener">
+              🔗 Ver na Steam
+            </a>` : ''}
+            <button class="detail-delete" onclick="confirmDelete('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}')">
+              🗑 Remover
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function toggleExpand(id) {
+      const detail = document.getElementById(`detail-${id}`);
+      const btn    = document.getElementById(`expand-${id}`);
+      detail.classList.toggle('open');
+      btn.classList.toggle('open');
+    }
+
+    function confirmDelete(id, name) {
+      if (confirm(`Remover "${name}" da lista?`)) {
+        window.deleteGame(id);
+        showToast(`🗑 "${name}" removido.`, 'success');
+      }
+    }
+
+    // ── Filters ───────────────────────────────────────────
+    function setFilter(f, btn) {
+      currentFilter = f;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderGames(window.__games || {});
+    }
+
+    // ── Helpers ───────────────────────────────────────────
+    function setLoading(which, on) {
+      const loader = document.getElementById(`loader-${which}`);
+      const btn    = document.getElementById(`btn-${which}`);
+      loader.style.display = on ? 'block' : 'none';
+      if (btn) btn.disabled = on;
+    }
+
+    let toastTimer;
+    function showToast(msg, type = '') {
+      const t = document.getElementById('toast');
+      t.textContent  = msg;
+      t.className    = `toast show ${type}`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+  </script>
+</body>
+</html>
