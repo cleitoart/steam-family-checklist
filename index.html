@@ -748,6 +748,87 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
+    /* ── Locked state ── */
+    body.edit-locked .add-section   { display: none; }
+    body.edit-locked .checkbox      { pointer-events: none; opacity: 0.35; }
+    body.edit-locked .detail-delete { display: none; }
+
+    /* ── Lock button ── */
+    .lock-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-head);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .lock-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .lock-btn.unlocked { border-color: rgba(93,186,74,0.35); color: var(--green); }
+
+    /* ── Auth modal ── */
+    .auth-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(5,12,20,0.88);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .auth-overlay.show { display: flex; }
+    .auth-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 320px;
+      margin: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .auth-title {
+      font-family: var(--font-head);
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .auth-sub { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.5; }
+    .auth-input {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 22px;
+      padding: 12px 16px;
+      text-align: center;
+      letter-spacing: 0.4em;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s;
+      font-family: var(--font-body);
+    }
+    .auth-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(74,158,221,0.12); }
+    .auth-input.shake { animation: shake 0.3s ease; border-color: var(--red); }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%      { transform: translateX(-8px); }
+      75%      { transform: translateX(8px); }
+    }
+
     /* ── Responsive ── */
     @media (max-width: 540px) {
       .header-stats { display: none; }
@@ -782,6 +863,10 @@
         <div class="stat-label">Faltam</div>
       </div>
     </div>
+    <button class="lock-btn" id="lock-btn" onclick="toggleLock()">
+      <span id="lock-icon">🔒</span>
+      <span id="lock-label">Bloqueado</span>
+    </button>
   </header>
 
   <main>
@@ -861,7 +946,96 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
+  <!-- Auth modal -->
+  <div class="auth-overlay" id="auth-overlay">
+    <div class="auth-box">
+      <div class="auth-title">🔑 Acesso de Edição</div>
+      <div class="auth-sub">Digite o PIN para desbloquear adição e edição de jogos</div>
+      <input class="auth-input" id="auth-input" type="password"
+        maxlength="12" placeholder="••••"
+        onkeydown="if(event.key==='Enter') submitPin()"
+        autocomplete="off"
+      />
+      <button class="btn btn-primary" onclick="submitPin()" style="width:100%;justify-content:center">
+        Desbloquear
+      </button>
+      <button class="btn btn-ghost" onclick="closeAuthModal()" style="width:100%;justify-content:center">
+        Cancelar
+      </button>
+    </div>
+  </div>
+
   <script>
+    // ── PIN de edição ─────────────────────────────────────
+    // Troque '1234' pelo PIN que quiser usar
+    const EDIT_PIN = '1234';
+    let editUnlocked = sessionStorage.getItem('edit_unlocked') === '1';
+
+    // Aplica estado inicial antes de qualquer render
+    if (!editUnlocked) document.body.classList.add('edit-locked');
+
+    function applyLockState() {
+      const btn   = document.getElementById('lock-btn');
+      const icon  = document.getElementById('lock-icon');
+      const label = document.getElementById('lock-label');
+      if (editUnlocked) {
+        document.body.classList.remove('edit-locked');
+        btn.classList.add('unlocked');
+        icon.textContent  = '🔓';
+        label.textContent = 'Desbloqueado';
+      } else {
+        document.body.classList.add('edit-locked');
+        btn.classList.remove('unlocked');
+        icon.textContent  = '🔒';
+        label.textContent = 'Bloqueado';
+      }
+    }
+
+    function toggleLock() {
+      if (editUnlocked) {
+        editUnlocked = false;
+        sessionStorage.removeItem('edit_unlocked');
+        applyLockState();
+        showToast('🔒 Edição bloqueada.', '');
+      } else {
+        showAuthModal();
+      }
+    }
+
+    function showAuthModal() {
+      document.getElementById('auth-overlay').classList.add('show');
+      const input = document.getElementById('auth-input');
+      input.value = '';
+      input.classList.remove('shake');
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-overlay').classList.remove('show');
+    }
+
+    function submitPin() {
+      const input = document.getElementById('auth-input');
+      if (input.value === EDIT_PIN) {
+        editUnlocked = true;
+        sessionStorage.setItem('edit_unlocked', '1');
+        closeAuthModal();
+        applyLockState();
+        showToast('🔓 Edição desbloqueada!', 'success');
+      } else {
+        input.classList.remove('shake');
+        void input.offsetWidth; // reinicia animação
+        input.classList.add('shake');
+        input.value = '';
+        setTimeout(() => input.classList.remove('shake'), 400);
+      }
+    }
+
+    // Fechar modal ao clicar fora
+    document.getElementById('auth-overlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('auth-overlay')) closeAuthModal();
+    });
+
     let currentFilter = 'all';
     let pendingGame   = null;
 
@@ -1071,7 +1245,7 @@
       if (refreshStarted) return;
       refreshStarted = true;
 
-      const stale = 6 * 60 * 60 * 1000; // 6 horas
+      const stale = 30 * 60 * 1000; // 30 minutos
       const now   = Date.now();
       const toRefresh = games.filter(g =>
         !g.purchased && g.appId &&
