@@ -163,6 +163,10 @@
       line-height: 1;
     }
 
+    .stat-num-price {
+      font-size: 13px;
+    }
+
     .stat-label {
       font-size: 10px;
       color: var(--muted);
@@ -862,6 +866,10 @@
         <div class="stat-num" id="stat-pending" style="color:var(--text)">0</div>
         <div class="stat-label">Faltam</div>
       </div>
+      <div class="stat stat-price-wrap">
+        <div class="stat-num stat-num-price" id="stat-price" style="color:#e8b84b">R$ 0,00</div>
+        <div class="stat-label">A Gastar</div>
+      </div>
     </div>
     <button class="lock-btn" id="lock-btn" onclick="toggleLock()">
       <span id="lock-icon">🔒</span>
@@ -1289,6 +1297,18 @@
       refreshPrices(games);
       const total  = games.length;
       const bought = games.filter(g => g.purchased).length;
+
+      // Custo total dos jogos pendentes
+      const parsePriceValue = (str) => {
+        if (!str || str === 'Gratuito' || str === 'Indisponível') return 0;
+        const n = parseFloat(str.replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
+        return isNaN(n) ? 0 : n;
+      };
+      const totalPrice = games
+        .filter(g => !g.purchased)
+        .reduce((sum, g) => sum + parsePriceValue(g.price), 0);
+      document.getElementById('stat-price').textContent =
+        'R$ ' + totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       // Stats
       document.getElementById('stat-total').textContent   = total;
