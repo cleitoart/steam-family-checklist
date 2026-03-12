@@ -497,6 +497,59 @@
 
     .list-search-input::placeholder { color: var(--muted); }
 
+    /* ── Sort control ── */
+    .sort-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0 4px 0 8px;
+      height: 30px;
+      color: var(--muted);
+      transition: border-color 0.15s;
+    }
+
+    .sort-control:focus-within { border-color: rgba(74,158,221,0.5); }
+
+    .sort-select {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .sort-select option {
+      background: var(--surface);
+      color: var(--text);
+      text-transform: none;
+      letter-spacing: normal;
+      font-weight: 400;
+    }
+
+    .sort-dir-btn {
+      background: none;
+      border: none;
+      border-left: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0 2px 0 6px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s;
+      height: 100%;
+    }
+
+    .sort-dir-btn:hover { color: var(--accent); }
+
     /* ── Detail: editar sugerido por ── */
     .detail-who-row {
       display: inline-flex;
@@ -1015,6 +1068,18 @@
       <button class="filter-btn active" onclick="setFilter('all', this)">Todos</button>
       <button class="filter-btn" onclick="setFilter('pending', this)">Faltam</button>
       <button class="filter-btn" onclick="setFilter('bought', this)">Comprados</button>
+      <div class="sort-control">
+        <span class="material-icon" style="font-size:16px">sort</span>
+        <select class="sort-select" id="sort-select" onchange="setSort(this.value)">
+          <option value="name">Nome</option>
+          <option value="price">Preço</option>
+          <option value="discount">Desconto</option>
+          <option value="addedAt">Data de adição</option>
+        </select>
+        <button class="sort-dir-btn" id="sort-dir-btn" onclick="toggleSortDir()" title="Inverter ordem">
+          <span class="material-icon" id="sort-dir-icon" style="font-size:18px">arrow_upward</span>
+        </button>
+      </div>
       <div class="list-search">
         <span class="material-icon list-search-icon">search</span>
         <input class="list-search-input" id="list-search-input" type="text"
@@ -1132,6 +1197,8 @@
 
     let currentFilter = 'all';
     let currentSearch = '';
+    let currentSort   = 'name';
+    let sortDir       = 'asc';
     let pendingGame   = null;
 
     // ── Input validation + live search ───────────────────
@@ -1433,10 +1500,33 @@
         return true;
       });
 
-      // Sort: not bought first, then by name
+      // Sort
+      const parsePriceForSort = (str) => {
+        if (!str || str === 'Indisponível') return Infinity;
+        if (str === 'Gratuito') return 0;
+        const n = parseFloat(str.replace('R$','').replace(/\./g,'').replace(',','.').trim());
+        return isNaN(n) ? Infinity : n;
+      };
+      const parseDiscountForSort = (str) => {
+        if (!str) return 0;
+        const n = parseFloat(str.replace('-','').replace('%',''));
+        return isNaN(n) ? 0 : n;
+      };
+
       filtered.sort((a, b) => {
-        if (a.purchased !== b.purchased) return a.purchased ? 1 : -1;
-        return (a.name || '').localeCompare(b.name || '');
+        if (currentFilter === 'all' && a.purchased !== b.purchased)
+          return a.purchased ? 1 : -1;
+        let cmp = 0;
+        if (currentSort === 'name') {
+          cmp = (a.name || '').localeCompare(b.name || '', 'pt-BR');
+        } else if (currentSort === 'price') {
+          cmp = parsePriceForSort(a.price) - parsePriceForSort(b.price);
+        } else if (currentSort === 'discount') {
+          cmp = parseDiscountForSort(a.discount) - parseDiscountForSort(b.discount);
+        } else if (currentSort === 'addedAt') {
+          cmp = new Date(a.addedAt || 0) - new Date(b.addedAt || 0);
+        }
+        return sortDir === 'asc' ? cmp : -cmp;
       });
 
       const list = document.getElementById('games-list');
@@ -1524,6 +1614,18 @@
 
     function setSearch(v) {
       currentSearch = v;
+      renderGames(window.__games || {});
+    }
+
+    function setSort(v) {
+      currentSort = v;
+      renderGames(window.__games || {});
+    }
+
+    function toggleSortDir() {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      document.getElementById('sort-dir-icon').textContent =
+        sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward';
       renderGames(window.__games || {});
     }
 
