@@ -86,8 +86,8 @@
       background: transparent;
       color: var(--text);
       font-family: var(--font-body);
-      min-height: 100vh;
-      overflow-x: hidden;
+      height: 100vh;
+      overflow: hidden;
     }
 
     /* ── Noise canvas ── */
@@ -282,10 +282,16 @@
       z-index: 2;
       max-width: 780px;
       margin: 0 auto;
-      padding: 32px 16px 64px;
+      padding: 32px 16px 0;
       background: rgba(5, 13, 20, 0.62);
-      min-height: calc(100vh - 64px);
+      height: calc(100vh - 64px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
+
+    /* Sticky sections don't shrink */
+    .add-section, .list-controls, .progress-wrap { flex-shrink: 0; }
 
     /* ── Add section ── */
     .add-section {
@@ -597,27 +603,73 @@
 
     .sort-control:focus-within { border-color: rgba(74,158,221,0.5); }
 
-    .sort-select {
-      background: transparent;
-      border: none;
+    /* ── Custom select dropdown ── */
+    .custom-select {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .custom-select-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      padding: 0 2px;
       color: var(--muted);
       font-family: var(--font-body);
       font-size: 12px;
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      outline: none;
-      cursor: pointer;
-      -webkit-appearance: none;
-      appearance: none;
+      user-select: none;
+      white-space: nowrap;
+      line-height: 32px;
     }
 
-    .sort-select option {
+    .custom-select-trigger:hover { color: var(--text); }
+
+    .custom-select-arrow {
+      font-size: 16px !important;
+      transition: transform 0.15s;
+    }
+
+    .custom-select.open .custom-select-arrow { transform: rotate(180deg); }
+
+    .custom-select-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: -8px;
       background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      z-index: 300;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+      min-width: 160px;
+    }
+
+    .custom-select.open .custom-select-dropdown { display: block; }
+
+    .custom-select-option {
+      padding: 9px 14px;
+      font-size: 13px;
+      font-family: var(--font-body);
       color: var(--text);
+      cursor: pointer;
+      transition: background 0.12s;
       text-transform: none;
       letter-spacing: normal;
       font-weight: 400;
+    }
+
+    .custom-select-option:hover { background: rgba(74,140,180,0.1); }
+
+    .custom-select-option.selected {
+      color: var(--accent);
+      font-weight: 600;
+      background: rgba(74,140,180,0.07);
     }
 
     .sort-dir-btn {
@@ -634,6 +686,32 @@
     }
 
     .sort-dir-btn:hover { color: var(--accent); }
+
+    /* ── Scrollable games list wrapper ── */
+    #games-list-wrap {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      padding-bottom: 32px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(74,140,180,0.35) rgba(10,21,32,0.5);
+    }
+
+    #games-list-wrap::-webkit-scrollbar { width: 5px; }
+
+    #games-list-wrap::-webkit-scrollbar-track {
+      background: rgba(10,21,32,0.5);
+      border-radius: 3px;
+    }
+
+    #games-list-wrap::-webkit-scrollbar-thumb {
+      background: rgba(74,140,180,0.35);
+      border-radius: 3px;
+    }
+
+    #games-list-wrap::-webkit-scrollbar-thumb:hover {
+      background: rgba(74,140,180,0.65);
+    }
 
     /* ── Detail: editar sugerido por ── */
     .detail-who-row {
@@ -1167,12 +1245,18 @@
       </div>
       <div class="sort-control">
         <span class="material-icon" style="font-size:16px">sort</span>
-        <select class="sort-select" id="sort-select" onchange="setSort(this.value)">
-          <option value="name">Nome</option>
-          <option value="price">Preço</option>
-          <option value="discount">Desconto</option>
-          <option value="addedAt">Data de adição</option>
-        </select>
+        <div class="custom-select" id="custom-sort-select">
+          <div class="custom-select-trigger" onclick="toggleSortDropdown(event)">
+            <span id="sort-label">Nome</span>
+            <span class="material-icon custom-select-arrow">expand_more</span>
+          </div>
+          <div class="custom-select-dropdown" id="sort-dropdown">
+            <div class="custom-select-option selected" data-value="name" onclick="selectSort('name','Nome',this)">Nome</div>
+            <div class="custom-select-option" data-value="price" onclick="selectSort('price','Preço',this)">Preço</div>
+            <div class="custom-select-option" data-value="discount" onclick="selectSort('discount','Desconto',this)">Desconto</div>
+            <div class="custom-select-option" data-value="addedAt" onclick="selectSort('addedAt','Data',this)">Data de adição</div>
+          </div>
+        </div>
         <button class="sort-dir-btn" id="sort-dir-btn" onclick="toggleSortDir()" title="Inverter ordem">
           <span class="material-icon" id="sort-dir-icon" style="font-size:18px">arrow_upward</span>
         </button>
@@ -1206,8 +1290,10 @@
       </div>
     </div>
 
-    <!-- Games list -->
-    <div class="games-list" id="games-list"></div>
+    <!-- Games list (scrollable) -->
+    <div id="games-list-wrap">
+      <div class="games-list" id="games-list"></div>
+    </div>
 
   </main>
 
@@ -1415,6 +1501,10 @@
 
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.input-wrap')) hideDropdown();
+      if (!e.target.closest('#custom-sort-select')) {
+        const cs = document.getElementById('custom-sort-select');
+        if (cs) cs.classList.remove('open');
+      }
     });
 
     // ── Fetch game info from Steam API ───────────────────
@@ -1743,6 +1833,19 @@
       renderGames(window.__games || {});
     }
 
+    function toggleSortDropdown(e) {
+      e && e.stopPropagation();
+      document.getElementById('custom-sort-select').classList.toggle('open');
+    }
+
+    function selectSort(value, label, el) {
+      document.getElementById('sort-label').textContent = label;
+      document.querySelectorAll('.custom-select-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('custom-sort-select').classList.remove('open');
+      setSort(value);
+    }
+
     function toggleSortDir() {
       sortDir = sortDir === 'asc' ? 'desc' : 'asc';
       document.getElementById('sort-dir-icon').textContent =
@@ -1818,23 +1921,26 @@
     function draw() {
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
-          // Dois campos de ruído com escalas e velocidades diferentes
-          const n1 = (noise(x * 0.05 + t * 0.09, y * 0.05 + t * 0.06) + 1) * 0.5;
-          const n2 = (noise(x * 0.03 - t * 0.05, y * 0.03 + t * 0.07) + 1) * 0.5;
+          // Ambos os campos derivam na mesma direção (+x) → movimento da direita para a esquerda
+          const n1 = (noise(x * 0.05 + t * 0.10, y * 0.04 + t * 0.015) + 1) * 0.5;
+          const n2 = (noise(x * 0.03 + t * 0.06, y * 0.03 - t * 0.008) + 1) * 0.5;
           const n  = n1 * 0.65 + n2 * 0.35;
 
-          // Mapa de cores: #050d14 → #102038 com toque de azul nos picos
-          const hi = Math.max(0, n - 0.6) * 2.5;
-          const r = (5  + n * 12 + hi * 6)  | 0;
-          const g = (12 + n * 18 + hi * 10) | 0;
-          const b = (20 + n * 28 + hi * 22) | 0;
+          // Posterizar: quantizar em 5 níveis → cores flat sem gradiente suave
+          const STEPS = 5;
+          const nF = Math.round(n * STEPS) / STEPS;
+
+          // Paleta de azul marinho escuro com 5 degraus visíveis
+          const r = (4  + nF * 18) | 0;  // 4 → 22
+          const g = (10 + nF * 26) | 0;  // 10 → 36
+          const b = (18 + nF * 44) | 0;  // 18 → 62
 
           const i = (y * W + x) * 4;
           d[i] = r; d[i + 1] = g; d[i + 2] = b; d[i + 3] = 255;
         }
       }
       cx.putImageData(img, 0, 0);
-      t += 0.005;
+      t += 0.012;  // mais rápido (era 0.005)
       requestAnimationFrame(draw);
     }
 
