@@ -52,6 +52,10 @@
     // ── Update price ──────────────────────────────────────
     window.updateGamePrice = (id, priceData) =>
       update(ref(db, `games/${id}`), priceData);
+
+    // ── Update any fields ─────────────────────────────────
+    window.updateGame = (id, data) =>
+      update(ref(db, `games/${id}`), data);
   </script>
 
   <style>
@@ -449,13 +453,75 @@
       animation: spin 0.7s linear infinite;
     }
 
-    /* ── Filters ── */
-    .filters {
+    /* ── List controls (filters + search) ── */
+    .list-controls {
       display: flex;
       gap: 8px;
       margin-bottom: 16px;
       flex-wrap: wrap;
+      align-items: center;
     }
+
+    .list-search {
+      margin-left: auto;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .list-search-icon {
+      position: absolute;
+      left: 8px;
+      color: var(--muted);
+      font-size: 18px;
+      pointer-events: none;
+    }
+
+    .list-search-input {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 13px;
+      padding: 6px 10px 6px 30px;
+      outline: none;
+      width: 170px;
+      transition: border-color 0.2s, width 0.2s;
+    }
+
+    .list-search-input:focus {
+      border-color: rgba(74,158,221,0.5);
+      width: 210px;
+    }
+
+    .list-search-input::placeholder { color: var(--muted); }
+
+    /* ── Detail: editar sugerido por ── */
+    .detail-who-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .detail-who-input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 12px;
+      padding: 1px 4px;
+      outline: none;
+      width: 120px;
+      transition: border-color 0.2s;
+    }
+
+    .detail-who-input:focus { border-bottom-color: var(--accent); }
+    .detail-who-input::placeholder { color: var(--muted); font-style: italic; }
+    body.edit-locked .detail-who-row { display: none; }
 
     .filter-btn {
       padding: 6px 14px;
@@ -944,11 +1010,17 @@
       </div>
     </div>
 
-    <!-- Filters -->
-    <div class="filters">
+    <!-- Filters + Search -->
+    <div class="list-controls">
       <button class="filter-btn active" onclick="setFilter('all', this)">Todos</button>
       <button class="filter-btn" onclick="setFilter('pending', this)">Faltam</button>
       <button class="filter-btn" onclick="setFilter('bought', this)">Comprados</button>
+      <div class="list-search">
+        <span class="material-icon list-search-icon">search</span>
+        <input class="list-search-input" id="list-search-input" type="text"
+          placeholder="Buscar jogo…" autocomplete="off"
+          oninput="setSearch(this.value)">
+      </div>
     </div>
 
     <!-- Progress -->
@@ -1059,6 +1131,7 @@
     });
 
     let currentFilter = 'all';
+    let currentSearch = '';
     let pendingGame   = null;
 
     // ── Input validation + live search ───────────────────
@@ -1352,9 +1425,11 @@
       }
 
       // Filter
+      const q = currentSearch.toLowerCase().trim();
       const filtered = games.filter(g => {
-        if (currentFilter === 'pending') return !g.purchased;
-        if (currentFilter === 'bought')  return g.purchased;
+        if (currentFilter === 'pending' && g.purchased)  return false;
+        if (currentFilter === 'bought'  && !g.purchased) return false;
+        if (q && !(g.name || '').toLowerCase().includes(q)) return false;
         return true;
       });
 
@@ -1406,10 +1481,19 @@
           </div>
           <div class="game-detail" id="detail-${g.id}">
             ${g.url ? `<a class="detail-link" href="${g.url}" target="_blank" rel="noopener">
-              🔗 Ver na Steam
-            </a>` : ''}
+              <span class="material-icon" style="font-size:16px">open_in_new</span> Ver na Steam
+            <\/a>` : ''}
+            <div class="detail-who-row">
+              <span class="material-icon" style="font-size:16px">person</span>
+              <span>Sugerido por:</span>
+              <input class="detail-who-input"
+                value="${(g.suggestedBy || '').replace(/"/g,'&quot;')}"
+                placeholder="ninguém"
+                onblur="saveWho('${g.id}', this.value)"
+                onkeydown="if(event.key==='Enter')this.blur()">
+            </div>
             <button class="detail-delete" onclick="confirmDelete('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}')">
-              🗑 Remover
+              <span class="material-icon" style="font-size:14px;vertical-align:-2px">delete</span> Remover
             </button>
           </div>
         </div>
@@ -1430,12 +1514,23 @@
       }
     }
 
-    // ── Filters ───────────────────────────────────────────
+    // ── Filters + Search ─────────────────────────────────
     function setFilter(f, btn) {
       currentFilter = f;
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       renderGames(window.__games || {});
+    }
+
+    function setSearch(v) {
+      currentSearch = v;
+      renderGames(window.__games || {});
+    }
+
+    // ── Edit suggestedBy ─────────────────────────────────
+    function saveWho(id, value) {
+      const v = value.trim() || null;
+      window.updateGame(id, { suggestedBy: v });
     }
 
     // ── Helpers ───────────────────────────────────────────
