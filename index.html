@@ -1154,7 +1154,7 @@
       pendingGame = {
         appId,
         name:      item.name,
-        image:     `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/header.jpg`,
+        image:     item.tiny_image || `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/header.jpg`,
         url:       `https://store.steampowered.com/app/${appId}`,
         purchased: false,
         addedAt:   new Date().toISOString(),
@@ -1314,6 +1314,15 @@
       const total  = games.length;
       const bought = games.filter(g => g.purchased).length;
 
+      // Fallback para imagens quebradas
+      window.handleImgError = function(img) {
+        img.onerror = null;
+        const ph = document.createElement('div');
+        ph.className = 'game-thumb-placeholder';
+        ph.innerHTML = '<span class="material-icon material-icon-filled" style="font-size:28px">sports_esports</span>';
+        img.parentNode.replaceChild(ph, img);
+      };
+
       // Custo total dos jogos pendentes
       const parsePriceValue = (str) => {
         if (!str || str === 'Gratuito' || str === 'Indisponível') return 0;
@@ -1373,7 +1382,7 @@
         <div class="game-card ${g.purchased ? 'bought' : ''}" id="card-${g.id}">
           <div class="game-card-main" onclick="toggleExpand('${g.id}')">
             ${g.image
-              ? `<img class="game-thumb" src="${g.image}" alt="${g.name}" loading="lazy">`
+              ? `<img class="game-thumb" src="${g.image}" alt="${g.name}" loading="lazy" onerror="handleImgError(this)">`
               : `<div class="game-thumb-placeholder"><span class="material-icon material-icon-filled" style="font-size:28px">sports_esports</span></div>`}
             <div class="game-info">
               <div class="game-name">${g.name || 'Jogo sem nome'}</div>
