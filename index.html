@@ -1002,8 +1002,12 @@
         <div class="stat-label">Faltam</div>
       </div>
       <div class="stat stat-price-wrap">
+        <div class="stat-num stat-num-price" id="stat-price-orig" style="color:var(--muted);text-decoration:line-through">R$ 0,00</div>
+        <div class="stat-label">Sem desc.</div>
+      </div>
+      <div class="stat stat-price-wrap">
         <div class="stat-num stat-num-price" id="stat-price" style="color:#e8b84b">R$ 0,00</div>
-        <div class="stat-label">A Gastar</div>
+        <div class="stat-label">A Gastar <span id="stat-savings" style="color:var(--green);font-style:normal"></span></div>
       </div>
     </div>
     <button class="lock-btn" id="lock-btn" onclick="toggleLock()">
@@ -1469,11 +1473,17 @@
         const n = parseFloat(str.replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
         return isNaN(n) ? 0 : n;
       };
-      const totalPrice = games
-        .filter(g => !g.purchased)
-        .reduce((sum, g) => sum + parsePriceValue(g.price), 0);
-      document.getElementById('stat-price').textContent =
-        'R$ ' + totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const fmt = (v) => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const pending = games.filter(g => !g.purchased);
+      const totalWithDiscount    = pending.reduce((sum, g) => sum + parsePriceValue(g.price), 0);
+      const totalWithoutDiscount = pending.reduce((sum, g) => sum + parsePriceValue(g.priceOrig || g.price), 0);
+      const savings = totalWithoutDiscount - totalWithDiscount;
+
+      document.getElementById('stat-price-orig').textContent = fmt(totalWithoutDiscount);
+      document.getElementById('stat-price').textContent      = fmt(totalWithDiscount);
+      // Mostra economia apenas se houver desconto real
+      const savingsEl = document.getElementById('stat-savings');
+      savingsEl.textContent = savings > 0 ? `−${fmt(savings)}` : '';
 
       // Stats
       document.getElementById('stat-total').textContent   = total;
